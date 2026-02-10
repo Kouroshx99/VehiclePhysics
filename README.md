@@ -18,7 +18,9 @@ For commercial licensing inquiries, contact: itc@lsu.edu
 ## Citation
 Use of this repository is conditioned upon proper citation of the associated publication in any resulting publication, presentation, or derivative work.
 
-[Insert full citation here]
+K. Afsharpour, *VehiclePhysics: A Modular Vehicle Dynamics Plugin for Unreal Engine*,
+Louisiana State University, 2026.
+GitHub repository: https://github.com/Kouroshx99/VehiclePhysics
 
 ## Demo Assets
 The included vehicle mesh is a temporary, generic demonstration asset used solely for testing and visualization. It does not represent any specific real-world vehicle.
