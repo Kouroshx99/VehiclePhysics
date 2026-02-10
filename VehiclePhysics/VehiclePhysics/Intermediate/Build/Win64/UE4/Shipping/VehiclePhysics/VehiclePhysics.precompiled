@@ -1,0 +1,10 @@
+{
+	"OutputFiles": [
+		"Car.cpp.obj",
+		"VehicleEngine.cpp.obj",
+		"WheelCollider.cpp.obj",
+		"STireGraphWidget.cpp.obj",
+		"Module.VehiclePhysics.cpp.obj",
+		"Module.VehiclePhysics.gen.cpp.obj"
+	]
+}

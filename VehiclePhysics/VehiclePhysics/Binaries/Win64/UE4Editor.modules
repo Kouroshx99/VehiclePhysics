@@ -1,0 +1,8 @@
+{
+	"BuildId": "17155196",
+	"Modules": 
+	{
+		"VehiclePhysics": "UE4Editor-VehiclePhysics.dll",
+		"VehiclePhysicsEditor": "UE4Editor-VehiclePhysicsEditor.dll"
+	}
+}
