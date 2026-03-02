@@ -25,5 +25,16 @@ GitHub repository: https://github.com/Kouroshx99/VehiclePhysics
 ## Demo Assets
 The included vehicle mesh is a temporary, generic demonstration asset used solely for testing and visualization. It does not represent any specific real-world vehicle.
 
+## Third-Party Assets
+
+The demo vehicle mesh is based on:
+
+"Generic Sedan Car" by MMC Works 
+Source: https://sketchfab.com/3d-models/generic-sedan-car-58c33766470d46e7b2aed542650494e5
+License: Creative Commons Attribution 4.0 (CC BY 4.0)  
+https://creativecommons.org/licenses/by/4.0/
+
+Modifications: Converted for Unreal Engine with simplified rigging with only 4 wheels and car body
+
 ## Status
 This project is under active development and is provided as-is.
