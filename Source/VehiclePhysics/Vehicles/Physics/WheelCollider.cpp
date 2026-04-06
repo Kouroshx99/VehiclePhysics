@@ -208,7 +208,7 @@ void UWheelCollider::TraceWheelCollider(FVector StartLocation, FVector EndLocati
 	// First compute Pacejka with full PhysicsDeltaTime for a baseline, or compute with tentative small dt and then recompute if needed.
 	// Here we compute with a representative substep dt after deciding NumIterations based on initial slip guess.
 	// To be safe, we compute Pacejka initially with PhysicsDeltaTime then decide iterations and recompute with LoopDeltaTime.
-    /*********** CAMBER *************/
+	/*********** CAMBER *************/
 	float LateralVelocity = WheelRotation.UnrotateVector(BodyVelocityAtContact).Y;
 	// Initial tire computation (uses PhysicsDeltaTime as conservative baseline)
 	{
@@ -226,30 +226,37 @@ void UWheelCollider::TraceWheelCollider(FVector StartLocation, FVector EndLocati
 	float LoopDeltaTime = PhysicsDeltaTime/(NumIterations);
 
 	// Update transient state
-	//if (false)
-	TransientState = TireParams->UpdateTransientState(
-		BodyVelocityAtContact.Size() * TO_SI,
-		SolverWheelForwardVelocityAtContact * TO_SI,
-		LateralVelocity * TO_SI,
-		CamberAngle,
-		GetAngularVelocityRad(),
-		PacejkaResult.Fx * TO_SI, 
-		PacejkaResult.Fy * TO_SI,
-		NormalForce * TO_SI,
-		LoopDeltaTime,
-		TransientState);
+	if (bUseTransients)
+		TransientState = TireParams->UpdateTransientState(
+			BodyVelocityAtContact.Size() * TO_SI,
+			SolverWheelForwardVelocityAtContact * TO_SI,
+			LateralVelocity * TO_SI,
+			CamberAngle,
+			GetAngularVelocityRad(),
+			PacejkaResult.Fx * TO_SI, 
+			PacejkaResult.Fy * TO_SI,
+			NormalForce * TO_SI,
+			LoopDeltaTime,
+			TransientState);
 
 	// Pacejka expects SI units. Convert as your tire model requires. TO_SI should convert cm->m or Unreal force -> N appropriately.
-	//if (false)
-	PacejkaResult = TireParams->ComputeTireForcesOverriden(
-	   NormalForce * TO_SI,                              // force -> N
-	   TransientState.kappa_prime,
-	   TransientState.alpha_prime,
-	   TransientState.gamma_prime * 0.f,                                      // rad
-	   BodyVelocityAtContact.Size() * TO_SI,             // m/s
-	   LateralVelocity * TO_SI, // lateral vel (m/s)
-	   SolverWheelForwardVelocityAtContact * TO_SI,      // forward vel (m/s)
-	   GetAngularVelocityRad());
+	if (bUseTransients)
+		PacejkaResult = TireParams->ComputeTireForcesOverriden(
+		   NormalForce * TO_SI,                              // force -> N
+		   TransientState.kappa_prime,
+		   TransientState.alpha_prime,
+		   TransientState.gamma_prime * 0.f,                                      // rad
+		   BodyVelocityAtContact.Size() * TO_SI,             // m/s
+		   LateralVelocity * TO_SI, // lateral vel (m/s)
+		   SolverWheelForwardVelocityAtContact * TO_SI,      // forward vel (m/s)
+		   GetAngularVelocityRad());
+	else
+		PacejkaResult = TireParams->ComputeTireForces(NormalForce * TO_SI,
+			CamberAngle,
+			BodyVelocityAtContact.Size() * TO_SI,
+			LateralVelocity * TO_SI,
+			SolverWheelForwardVelocityAtContact * TO_SI,
+			GetAngularVelocityRad());
 	
 	OutWheelHit.LongitudinalSlip = PacejkaResult.Kappa;
 	OutWheelHit.LateralSlip = PacejkaResult.Alpha;
@@ -294,25 +301,26 @@ void UWheelCollider::TraceWheelCollider(FVector StartLocation, FVector EndLocati
 		{
 			// Optionally recompute tire forces for the reduced dt:
 			PacejkaResult = TireParams->ComputeTireForcesOverriden(
-	   			NormalForce * TO_SI,                              // force -> N
-	   			TransientState.kappa_prime,
-	   			TransientState.alpha_prime,
-	   			TransientState.gamma_prime,                                      // rad
-	   			BodyVelocityAtContact.Size() * TO_SI,             // m/s
-	   			LateralVelocity * TO_SI, // lateral vel (m/s)
-	   			SolverWheelForwardVelocityAtContact * TO_SI,      // forward vel (m/s)
-	   			GetAngularVelocityRad());
-			TransientState = TireParams->UpdateTransientState(
-				BodyVelocityAtContact.Size() * TO_SI,
-				SolverWheelForwardVelocityAtContact * TO_SI,
-				LateralVelocity * TO_SI,
-				CamberAngle,
-				GetAngularVelocityRad(),
-				PacejkaResult.Fx * TO_SI, 
-				PacejkaResult.Fy * TO_SI,
-				NormalForce * TO_SI,
-				LoopDeltaTime,
-				TransientState);
+				   NormalForce * TO_SI,                              // force -> N
+				   TransientState.kappa_prime,
+				   TransientState.alpha_prime,
+				   TransientState.gamma_prime,                                      // rad
+				   BodyVelocityAtContact.Size() * TO_SI,             // m/s
+				   LateralVelocity * TO_SI, // lateral vel (m/s)
+				   SolverWheelForwardVelocityAtContact * TO_SI,      // forward vel (m/s)
+				   GetAngularVelocityRad());
+			if (bUseTransients)
+				TransientState = TireParams->UpdateTransientState(
+					BodyVelocityAtContact.Size() * TO_SI,
+					SolverWheelForwardVelocityAtContact * TO_SI,
+					LateralVelocity * TO_SI,
+					CamberAngle,
+					GetAngularVelocityRad(),
+					PacejkaResult.Fx * TO_SI, 
+					PacejkaResult.Fy * TO_SI,
+					NormalForce * TO_SI,
+					LoopDeltaTime,
+					TransientState);
 		}
 	}
 

@@ -37,9 +37,9 @@ void UECU::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTi
 
 void UECU::ApplyBrake(float BrakeAmount) const
 {
-	for (FConnection* C : Drivetrain->BrakeConnections)
+	for (FBrakeConstraint& C : Drivetrain->BrakeConstraints)
 	{
-		C->ConnectionStrength = BrakeAmount;
+		C.ConnectionStrength = BrakeAmount;
 	}
 }
 

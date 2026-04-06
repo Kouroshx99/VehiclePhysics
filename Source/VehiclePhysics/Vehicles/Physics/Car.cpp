@@ -75,14 +75,16 @@ ACar::ACar()
 	Drivetrain->TransmissionShaft = TransmissionComponent->GetShaft();
 	Drivetrain->TransferCaseShaft = &TransferCaseShaft;
 
-	Drivetrain->FrontDifferential->RightWheel = FrontRight;
-	Drivetrain->FrontDifferential->LeftWheel = FrontLeft;
-	Drivetrain->RearDifferential->RightWheel = RearRight;
-	Drivetrain->RearDifferential->LeftWheel = RearLeft;
+	//Drivetrain->FrontDifferential->RightWheel = FrontRight;
+	//Drivetrain->FrontDifferential->LeftWheel = FrontLeft;
+	//Drivetrain->RearDifferential->RightWheel = RearRight;
+	//Drivetrain->RearDifferential->LeftWheel = RearLeft;
 	Drivetrain->FrontRightWheelShaft = FrontRight->GetShaft();
 	Drivetrain->FrontLeftWheelShaft = FrontLeft->GetShaft();
 	Drivetrain->RearRightWheelShaft = RearRight->GetShaft();
 	Drivetrain->RearLeftWheelShaft = RearLeft->GetShaft();
+	Drivetrain->FrontDiffShaft = &FrontDiffShaft;
+	Drivetrain->RearDiffShaft = &RearDiffShaft;
 	SetReplicates(true);
 	CarMesh->SetIsReplicated(true);
 	ClutchShaft.Inertia = 0.2f;
@@ -327,7 +329,7 @@ void ACar::Heun(float DeltaTime, FBodyInstance* BodyInstance, FBodyState Current
         WheelHits.SetNum(WheelColliders.Num());
     	//Engine->ApplyCurrentImpulse(DT);
         ComputeWheelHits(PredictedBodyInfo, WheelHits, BodyInstance, DT);
-    	Drivetrain->SolveConstraints(Drivetrain->Connections, DT);
+    	//Drivetrain->SolveConstraints(Drivetrain->Connections, DT);
 
         // Update cross-wheel suspension
         WheelColliders[0]->SetOtherWheelSuspensionCompression(WheelColliders[1]->GetWheelZPosition());

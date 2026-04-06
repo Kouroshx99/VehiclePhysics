@@ -9,11 +9,11 @@ UDrivetrain::UDrivetrain()
 {
 	PrimaryComponentTick.bCanEverTick = true;
 
-	FrontDifferential = CreateDefaultSubobject<UDifferential>(TEXT("Front Differential"));
-	RearDifferential = CreateDefaultSubobject<UDifferential>(TEXT("Rear Differential"));
+	//FrontDifferential = CreateDefaultSubobject<UDifferential>(TEXT("Front Differential"));
+	//RearDifferential = CreateDefaultSubobject<UDifferential>(TEXT("Rear Differential"));
 
-	FrontDiffShaft = FrontDifferential->GetShaft();
-	RearDiffShaft = RearDifferential->GetShaft();
+	//FrontDiffShaft = FrontDifferential->GetShaft();
+	//RearDiffShaft = RearDifferential->GetShaft();
 }
 
 void UDrivetrain::BeginPlay()
@@ -44,6 +44,15 @@ void UDrivetrain::TickComponent(float DeltaTime, ELevelTick TickType, FActorComp
 	if (EngineShaft->GetAngularVelocity() * 60 / (PI * 2) < 1000)
 		t = GetWorld()->TimeSeconds;
 	a = EngineShaft->GetAngularVelocity();
+	if (DifferentialConstraints.Num() > 0 && false)
+	UE_LOG(LogTemp, Warning, TEXT("Diff %f, R %f, L %f"), 
+		DifferentialConstraints[0].Input->GetAngularVelocity() / DifferentialConstraints[0].Ratio,
+		DifferentialConstraints[0].Right->GetAngularVelocity(),
+		DifferentialConstraints[0].Left->GetAngularVelocity())
+	
+	if (DifferentialConstraints.Num() > 0)
+		UE_LOG(LogTemp, Warning, TEXT("-------------------- Diff %f"), 
+			DifferentialConstraints[0].Right->GetAngularVelocity() - DifferentialConstraints[0].Left->GetAngularVelocity())
 }
 
 void UDrivetrain::GearUp()
@@ -52,14 +61,14 @@ void UDrivetrain::GearUp()
 	switch (DrivetrainType)
 	{
 	case EDrivetrainType::EDT_RearWheelDrive:
-		Connections[2].Ratio = GearRatios[CurrentGear];
+		GearConstraints[2].Ratio = GearRatios[CurrentGear];
 		break;
 	case EDrivetrainType::EDT_FrontWheelDrive:
-		Connections[2].Ratio = GearRatios[CurrentGear];
+		GearConstraints[2].Ratio = GearRatios[CurrentGear];
 		break;
 	case EDrivetrainType::EDT_AllWheelDrive:
-		Connections[2].Ratio = GearRatios[CurrentGear];
-		Connections[3].Ratio = GearRatios[CurrentGear];
+		GearConstraints[2].Ratio = GearRatios[CurrentGear];
+		GearConstraints[3].Ratio = GearRatios[CurrentGear];
 		break;
 	}
 }
@@ -70,14 +79,14 @@ void UDrivetrain::GearDown()
 	switch (DrivetrainType)
 	{
 	case EDrivetrainType::EDT_RearWheelDrive:
-		Connections[2].Ratio = GearRatios[CurrentGear];
+		GearConstraints[2].Ratio = GearRatios[CurrentGear];
 		break;
 	case EDrivetrainType::EDT_FrontWheelDrive:
-		Connections[2].Ratio = GearRatios[CurrentGear];
+		GearConstraints[2].Ratio = GearRatios[CurrentGear];
 		break;
 	case EDrivetrainType::EDT_AllWheelDrive:
-		Connections[2].Ratio = GearRatios[CurrentGear];
-		Connections[3].Ratio = GearRatios[CurrentGear];
+		GearConstraints[2].Ratio = GearRatios[CurrentGear];
+		GearConstraints[3].Ratio = GearRatios[CurrentGear];
 		break;
 	}
 }
@@ -85,78 +94,132 @@ void UDrivetrain::GearDown()
 void UDrivetrain::InitializeShafts()
 {
 	// Define connections (from input to output, ratio >1 for reduction)
-	Connections.Add(FConnection(EngineShaft, ClutchShaft, 1.0f, FConnection::EConnectionType::Locked)); // Engine to clutch
-	Connections.Add(FConnection(ClutchShaft, TransmissionShaft, 1.0f, FConnection::EConnectionType::Locked)); // Clutch to trans
+	AddGearConstraint(FGearConstraint(EngineShaft, ClutchShaft, 1.f));
+	AddGearConstraint(FGearConstraint(ClutchShaft, TransmissionShaft, 1.0f)); // Clutch to trans
+	//Connections.Add(FGearConstraint(EngineShaft, ClutchShaft, 1.0f)); // Engine to clutch
+	//Connections.Add(FGearConstraint(ClutchShaft, TransmissionShaft, 1.0f)); // Clutch to trans
 	
 	if (DrivetrainType == EDrivetrainType::EDT_RearWheelDrive)
 	{
-		Connections.Add(FConnection(TransmissionShaft, RearDiffShaft, GearRatios[CurrentGear], FConnection::EConnectionType::Locked)); // Trans to transfer
-		Connections.Add(FConnection(RearDiffShaft, 
-		RearRightWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(RearDiffShaft, 
-		RearLeftWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
+		AddGearConstraint(FGearConstraint(TransmissionShaft, RearDiffShaft, GearRatios[CurrentGear]));
+		//Connections.Add(FGearConstraint(TransmissionShaft, RearDiffShaft, GearRatios[CurrentGear]));
+		
+		const int32 RearDiffCarrierIndex =
+			AddDiffCarrierConstraint(FDiffCarrierConstraint(
+				RearDiffShaft,
+				RearLeftWheelShaft,
+				RearRightWheelShaft,
+				FinalDriveRatio));
+		
+		if (RearDifferentialType == EDifferentialType::Locked)
+			AddGearConstraint(FGearConstraint(RearRightWheelShaft,
+				RearLeftWheelShaft,
+				1.f));
+		
+		if (RearDifferentialType == EDifferentialType::LimitedSlip)
+			AddLimitedSlipConstraint(FLimitedSlipConstraint(RearLeftWheelShaft, RearRightWheelShaft,
+				RearDiffCarrierIndex, PreloadTorque, PowerLockCoeff, CoastLockCoeff, MaxCorrectionTorque));
 	}
 	
 	if (DrivetrainType == EDrivetrainType::EDT_FrontWheelDrive)
 	{
-		Connections.Add(FConnection(TransmissionShaft, FrontDiffShaft, GearRatios[CurrentGear], FConnection::EConnectionType::Locked)); // Transfer to front diff
-		Connections.Add(FConnection(FrontDiffShaft, 
-			FrontRightWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(FrontDiffShaft,
-			FrontLeftWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(RearDiffShaft, 
-			FrontDiffShaft, 1.f, FConnection::EConnectionType::Locked)); // Transfer to front diff
+		AddGearConstraint(FGearConstraint(TransmissionShaft, FrontDiffShaft, GearRatios[CurrentGear]));
+		
+		const int32 FrontDiffCarrierIndex =
+			AddDiffCarrierConstraint(FDiffCarrierConstraint(
+				FrontDiffShaft,
+				FrontLeftWheelShaft,
+				FrontRightWheelShaft,
+				FinalDriveRatio));
+		
+		if (FrontDifferentialType == EDifferentialType::Locked)
+			AddGearConstraint(FGearConstraint(FrontRightWheelShaft,
+				FrontLeftWheelShaft,
+				1.f));
+		
+		if (FrontDifferentialType == EDifferentialType::LimitedSlip)
+			AddLimitedSlipConstraint(FLimitedSlipConstraint(FrontLeftWheelShaft, FrontRightWheelShaft,
+				FrontDiffCarrierIndex, PreloadTorque, PowerLockCoeff, CoastLockCoeff, MaxCorrectionTorque));
 	}
+	
 	if (DrivetrainType == EDrivetrainType::EDT_AllWheelDrive)
 	{
-		Connections.Add(FConnection(TransmissionShaft, RearDiffShaft, GearRatios[CurrentGear], FConnection::EConnectionType::Locked)); // Trans to transfer
-
-		Connections.Add(FConnection(TransmissionShaft, FrontDiffShaft, GearRatios[CurrentGear], FConnection::EConnectionType::Locked)); // Transfer to front diff
-		Connections.Add(FConnection(RearDiffShaft, 
-		RearRightWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(RearDiffShaft, 
-		RearLeftWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(FrontDiffShaft, 
-			FrontRightWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(FrontDiffShaft,
-			FrontLeftWheelShaft, FinalDriveRatio, FConnection::EConnectionType::Locked));
-		Connections.Add(FConnection(RearDiffShaft, 
-			FrontDiffShaft, 1.f, FConnection::EConnectionType::Locked));
+		AddGearConstraint(FGearConstraint(TransmissionShaft, RearDiffShaft, GearRatios[CurrentGear]));
 		
+		const int32 RearDiffCarrierIndex =
+			AddDiffCarrierConstraint(FDiffCarrierConstraint(
+				RearDiffShaft,
+				RearLeftWheelShaft,
+				RearRightWheelShaft,
+				FinalDriveRatio));
 		
+		if (RearDifferentialType == EDifferentialType::Locked)
+			AddGearConstraint(FGearConstraint(RearRightWheelShaft,
+				RearLeftWheelShaft,
+				1.f));
+		
+		if (RearDifferentialType == EDifferentialType::LimitedSlip)
+			AddLimitedSlipConstraint(FLimitedSlipConstraint(RearLeftWheelShaft, RearRightWheelShaft,
+				RearDiffCarrierIndex, PreloadTorque, PowerLockCoeff, CoastLockCoeff, MaxCorrectionTorque));
+		
+		AddGearConstraint(FGearConstraint(TransmissionShaft, FrontDiffShaft, GearRatios[CurrentGear]));
+		
+		const int32 FrontDiffCarrierIndex =
+			AddDiffCarrierConstraint(FDiffCarrierConstraint(
+				FrontDiffShaft,
+				FrontLeftWheelShaft,
+				FrontRightWheelShaft,
+				FinalDriveRatio));
+		
+		if (FrontDifferentialType == EDifferentialType::Locked)
+			AddGearConstraint(FGearConstraint(FrontRightWheelShaft,
+				FrontLeftWheelShaft,
+				1.f));
+		
+		if (FrontDifferentialType == EDifferentialType::LimitedSlip)
+			AddLimitedSlipConstraint(FLimitedSlipConstraint(FrontLeftWheelShaft, FrontRightWheelShaft,
+				FrontDiffCarrierIndex, PreloadTorque, PowerLockCoeff, CoastLockCoeff, MaxCorrectionTorque));
 	}
-	FConnection FRBrake = FConnection(
-		FrontRightWheelShaft, 
+	//FBrakeConstraint FRBrake = FBrakeConstraint(
+	//	FrontRightWheelShaft,
+	//	1.f,
+	//	3000);
+	//FBrakeConstraint FLBrake = FBrakeConstraint(
+	//	FrontLeftWheelShaft,
+	//	1.f,
+	//	3000);
+	//FBrakeConstraint RRBrake = FBrakeConstraint(
+	//	RearRightWheelShaft,
+	//	1.f,
+	//	3000);
+	//FBrakeConstraint RLBrake = FBrakeConstraint(
+	//	RearLeftWheelShaft,
+	//	1.f,
+	//	3000);
+	//Connections.Add(FRBrake);
+	AddBrakeConstraint(FBrakeConstraint(
 		FrontRightWheelShaft,
 		1.f,
-		3000,
-		FConnection::EConnectionType::Brake);
-	FConnection FLBrake = FConnection(
-		FrontLeftWheelShaft,
+		3000));
+	AddBrakeConstraint(FBrakeConstraint(
 		FrontLeftWheelShaft,
 		1.f,
-		3000,
-		FConnection::EConnectionType::Brake);
-	FConnection RRBrake = FConnection(
-		RearRightWheelShaft,
+		3000));
+	AddBrakeConstraint(FBrakeConstraint(
 		RearRightWheelShaft,
 		1.f,
-		3000,
-		FConnection::EConnectionType::Brake);
-	FConnection RLBrake = FConnection(
-		RearLeftWheelShaft,
+		3000));
+	AddBrakeConstraint(FBrakeConstraint(
 		RearLeftWheelShaft,
 		1.f,
-		3000,
-		FConnection::EConnectionType::Brake);
-	Connections.Add(FRBrake);
-	BrakeConnections.Add(&Connections[Connections.Num() - 1]);
-	Connections.Add(FLBrake);
-	BrakeConnections.Add(&Connections[Connections.Num() - 1]);
-	Connections.Add(RRBrake);
-	BrakeConnections.Add(&Connections[Connections.Num() - 1]);
-	Connections.Add(RLBrake);
-	BrakeConnections.Add(&Connections[Connections.Num() - 1]);
+		3000));
+	//BrakeConstraints.Add(&GearConstraints[Connections.Num() - 1]);
+	//Connections.Add(FLBrake);
+	//BrakeConstraints.Add(GearConstraints[Connections.Num() - 1]);
+	//Connections.Add(RRBrake);
+	//BrakeConstraints.Add(&GearConstraints[Connections.Num() - 1]);
+	//Connections.Add(RLBrake);
+	//BrakeConstraints.Add(&GearConstraints[Connections.Num() - 1]);
 
 	// Define connections (from input to output, ratio >1 for reduction)
 	//CopyConnections.Add(FConnection(EngineCopy, ClutchCopy, 1.0f)); // Engine to clutch
@@ -171,65 +234,211 @@ void UDrivetrain::InitializeShafts()
 
 }
 int32 offset = 0;
-void UDrivetrain::SolveConstraints(TArray<FConnection>& Conns, float DT)
+
+void UDrivetrain::PreSolveConstraints(float DT)
 {
-	for(FConnection& Connection : Conns)
+	for (FGearConstraint& C : GearConstraints)
 	{
-		//Connection.Shaft1->DeltaTime = DT;
-		//Connection.Shaft2->DeltaTime = DT;
+		C.AccumJ = 0.f;
+		C.DeltaTime = DT;
+	}
+
+	for (FDiffCarrierConstraint& C : DiffCarrierConstraints)
+	{
+		C.AccumJ = 0.f;
+		C.DeltaTime = DT;
+	}
+
+	for (FLimitedSlipConstraint& C : LimitedSlipConstraints)
+	{
+		C.AccumJ = 0.f;
+		C.DeltaTime = DT;
+	}
+}
+
+void UDrivetrain::SolveConstraints(TArray<FGearConstraint>& Conns, float DT)
+{
+	PreSolveConstraints(DT);
+	for(FGearConstraint& Connection : GearConstraints)
+	{
 		Connection.Shaft1->ResetAccumImpulse();
 		Connection.Shaft2->ResetAccumImpulse();
 		Connection.AccumJ = 0.f;
 		Connection.DeltaTime = DT;
 	}
+	for(FBrakeConstraint& Connection : BrakeConstraints)
+	{
+		Connection.Shaft->ResetAccumImpulse();
+		Connection.AccumJ = 0.f;
+		Connection.DeltaTime = DT;
+	}
+	for(FDiffCarrierConstraint& Connection : DiffCarrierConstraints)
+	{
+		Connection.Input->ResetAccumImpulse();
+		Connection.Left->ResetAccumImpulse();
+		Connection.Right->ResetAccumImpulse();
+		Connection.AccumJ = 0.f;
+		Connection.DeltaTime = DT;
+	}
+	for(FLimitedSlipConstraint& Connection : LimitedSlipConstraints)
+	{
+		Connection.Left->ResetAccumImpulse();
+		Connection.Right->ResetAccumImpulse();
+		Connection.AccumJ = 0.f;
+		Connection.DeltaTime = DT;
+	}
+	for (int32 Iter = 0; Iter < SolverIterations; ++Iter)
+	{
+		const int32 NumRefs = SolveOrder.Num();
+		if (NumRefs == 0)
+			return;
+
+		const int32 Offset = Iter % NumRefs;
+
+		for (int32 j = 0; j < NumRefs; ++j)
+		{
+			const int32 RefIndex = (j + Offset) % NumRefs;
+			const FConstraintRef& Ref = SolveOrder[RefIndex];
+
+			switch (Ref.Kind)
+			{
+			case EConstraintKind::Gear:
+				SolveGearConstraint(GearConstraints[Ref.Index], DT);
+				break;
+
+			case EConstraintKind::DiffCarrier:
+				SolveDiffCarrierConstraint(DiffCarrierConstraints[Ref.Index], DT);
+				break;
+
+			case EConstraintKind::LimitedSlip:
+				SolveLimitedSlipConstraint(LimitedSlipConstraints[Ref.Index]);
+				break;
+
+			case EConstraintKind::Brake:
+				SolveBrakeConstraint(BrakeConstraints[Ref.Index], DT);
+				break;
+			}
+		}
+	}
+	return;
 	for (int32 Iter = 0; Iter < SolverIterations; ++Iter)
 	{
 		offset = offset % Conns.Num();
-		for (int32 j = 0; j < Conns.Num(); j++)
-		{
-			int32 jj = j + offset;
-			jj = jj % Conns.Num();
-			FConnection& Conn = Conns[jj];
-			//if (Conn.ConnectionType == FConnection::EConnectionType::Brake)
-			//	UE_LOG(LogTemp, Display, TEXT("Brake"))
-			//else
-			//	UE_LOG(LogTemp, Display, TEXT("Locked"))
-			float Omega1 = Conn.Shaft1->GetAngularVelocity();
-			float Omega2 = 0.f;
-			if (Conn.ConnectionType == FConnection::EConnectionType::Locked)
-				Omega2 = Conn.Shaft2->GetAngularVelocity();
-			float ABSRatio = FMath::Abs(Conn.Ratio);
-			float DeltaOmega = Omega1 - Conn.Ratio * Omega2;
-			if (FMath::Abs(DeltaOmega) < KINDA_SMALL_NUMBER)
-			{
-				continue;
-			}
-			float InvI1 = Conn.Shaft1->GetInvInertia();
-			float InvI2 = Conn.Shaft2->GetInvInertia() * FMath::Square(ABSRatio);
-			float InvISum = InvI1 + InvI2;
-			if (FMath::Abs(InvISum) < KINDA_SMALL_NUMBER)
-			{
-				continue;
-			}
-			float J = DeltaOmega / InvISum;
-			//if (Conn.ConnectionType == FConnection::EConnectionType::Brake)
-			//	UE_LOG(LogTemp, Display, TEXT("J %f"), J)
-			//else
-			//	UE_LOG(LogTemp, Display, TEXT("Not"))
-			
-			if (Conn.ConnectionType == FConnection::EConnectionType::Brake)
-			{
-				float Max = FMath::Abs(Conn.MaxCorrectionTorque * Conn.ConnectionStrength * FMath::Sign(DeltaOmega)
-					* DT /SolverIterations);
-				J = FMath::Clamp(J, -Max, Max);
-			}
-			//if (Conn.ConnectionType == FConnection::EConnectionType::Brake)
-			//	UE_LOG(LogTemp, Display, TEXT("J after %f"), J);
-			Conn.AccumJ += J;
-			Conn.Shaft1->ApplyImpulse(-J);
-			if (Conn.ConnectionType == FConnection::EConnectionType::Locked)
-				Conn.Shaft2->ApplyImpulse(J * Conn.Ratio);
-		}
+		//SolveGearConstraint(GearConstraints, DT);
+		//SolveDiffCarrierConstraint(DifferentialConstraints, DT);
 		offset++;
 	}
+}
+
+void UDrivetrain::SolveGearConstraint(FGearConstraint&Constraint, float DeltaTime)
+{
+	const float R = Constraint.Ratio;
+
+	float Win = Constraint.Shaft1->GetAngularVelocity();
+	float Wout = Constraint.Shaft2->GetAngularVelocity();
+
+	float DeltaOmega = Win - Wout * R;
+
+	if (FMath::Abs(DeltaOmega) < KINDA_SMALL_NUMBER)
+		return;
+
+	float InvIin = Constraint.Shaft1->GetInvInertia();
+	float InvIout = Constraint.Shaft2 ? Constraint.Shaft2->GetInvInertia() * FMath::Square(R) : 0.f;
+
+	float InvISum = InvIin + InvIout;
+
+	if (FMath::Abs(InvISum) < KINDA_SMALL_NUMBER)
+		return;
+
+	float J = DeltaOmega / InvISum;
+
+	Constraint.AccumJ += J;
+
+	Constraint.Shaft1->ApplyImpulse(-J);
+	Constraint.Shaft2->ApplyImpulse(J * R);
+}
+
+void UDrivetrain::SolveBrakeConstraint(FBrakeConstraint& Constraint, float DeltaTime)
+{
+	const float R = Constraint.Ratio;
+
+	float WheelAngularVelocity = Constraint.Shaft->GetAngularVelocity();
+
+	float DeltaOmega = WheelAngularVelocity;
+
+	if (FMath::Abs(DeltaOmega) < KINDA_SMALL_NUMBER)
+		return;
+
+	float InvI = Constraint.Shaft->GetInvInertia();
+		
+	if (FMath::Abs(InvI) < KINDA_SMALL_NUMBER)
+		return;
+
+	float J = DeltaOmega / InvI;
+	J *= Constraint.ConnectionStrength;
+
+	Constraint.AccumJ += J;
+
+	Constraint.Shaft->ApplyImpulse(-J);
+}
+
+void UDrivetrain::SolveDiffCarrierConstraint(FDiffCarrierConstraint& Constraint, float DeltaTime)
+{
+	const float R = Constraint.Ratio;
+
+	float Win = Constraint.Input->GetAngularVelocity();
+	float Wl  = Constraint.Left->GetAngularVelocity();
+	float Wr  = Constraint.Right->GetAngularVelocity();
+		
+	float Cdot = Win - (Wl + Wr) * R * 0.5f;
+
+	float InvIin = Constraint.Input->GetInvInertia();
+	float InvIl  = Constraint.Left->GetInvInertia() * FMath::Square(R * 0.5f);
+	float InvIr  = Constraint.Right->GetInvInertia() * FMath::Square(R * 0.5f);
+
+	float InvISum = InvIin + InvIl + InvIr;
+	if (FMath::Abs(InvISum) < KINDA_SMALL_NUMBER)
+		return;
+
+	float J = Cdot / InvISum;
+	Constraint.AccumJ += J;
+	Constraint.Input->ApplyImpulse(-J);
+	Constraint.Left->ApplyImpulse(J * R * 0.5f);
+	Constraint.Right->ApplyImpulse(J * R * 0.5f);
+}
+
+void UDrivetrain::SolveLimitedSlipConstraint(FLimitedSlipConstraint& LSD)
+{
+	float Wl = LSD.Left->GetAngularVelocity();
+	float Wr = LSD.Right->GetAngularVelocity();
+
+	float DeltaOmega = Wl - Wr;
+	if (FMath::Abs(DeltaOmega) < KINDA_SMALL_NUMBER)
+		return;
+
+	float InvIl = LSD.Left->GetInvInertia();
+	float InvIr = LSD.Right->GetInvInertia();
+
+	float InvISum = InvIl + InvIr;
+	if (FMath::Abs(InvISum) < KINDA_SMALL_NUMBER)
+		return;
+
+	float J = DeltaOmega / InvISum;
+
+	float CarrierTorque = 0.f;
+	if (DiffCarrierConstraints.IsValidIndex(LSD.CarrierConstraintIndex))
+	{
+		const FDiffCarrierConstraint& Carrier = DiffCarrierConstraints[LSD.CarrierConstraintIndex];
+		CarrierTorque = Carrier.AccumJ != 0.f ? FMath::Abs(Carrier.AccumJ / LSD.DeltaTime) : 0.f;
+	}
+
+	float AllowedTorque = LSD.PreloadTorque + LSD.PowerLockCoeff * CarrierTorque;
+	AllowedTorque = FMath::Min(AllowedTorque, LSD.MaxCorrectionTorque);
+
+	float MaxJ = AllowedTorque * LSD.DeltaTime / SolverIterations;
+	J = FMath::Clamp(J, -MaxJ, MaxJ);
+
+	LSD.AccumJ += J;
+	LSD.Left->ApplyImpulse(-J);
+	LSD.Right->ApplyImpulse(J);
 }

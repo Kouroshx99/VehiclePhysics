@@ -63,15 +63,7 @@ public:
 		float DeltaTime,
 		int32 Substeps,
 		UDrivetrain* Drivetrain);
-
-	/*FORCEINLINE void SetSolverData(FWheelSolverData SolverData)
-	{
-		SolverLongitudinalSlip = SolverData.LongitudinalSlip;
-		SolverLateralSlip = SolverData.LateralSlip;
-		WheelShaft.AngularVelocity = SolverData.AngularVelocity;
-		SolverSuspensionLenght = SolverData.SuspensionLenght;
-		SolverLastSuspensionLenght = SolverData.LastSuspensionLenght;
-	}*/
+	
 	float CamberAngle = 0.f;
 
 	FORCEINLINE FRotator GetWheelRotLocal() const{ return  RelativeWheelRotation.Rotator(); }
@@ -133,6 +125,9 @@ private:
 
 	UPROPERTY(EditAnywhere, Category = "Wheel", meta = (AllowPrivateAccess = true))
 	UTireParamsDataAsset* TireParams;
+	
+	UPROPERTY(EditAnywhere, Category = "Wheel", meta = (AllowPrivateAccess = true))
+	bool bUseTransients = false;
 	
 	UPROPERTY(EditAnywhere, Category="Wheel", meta=(AllowPrivateAccess=true, Units="cm"))
 	float WheelRadius = 35.f;

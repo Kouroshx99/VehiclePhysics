@@ -28,22 +28,35 @@ public:
 	UDrivetrain();
 	
 	UPROPERTY(EditAnywhere, Category="Drivetrain")
+	int32 SolverIterations = 10;
+	
+	UPROPERTY(EditAnywhere, Category="Drivetrain")
 	EDrivetrainType DrivetrainType = EDrivetrainType::EDT_FrontWheelDrive;
-
+	
 	UPROPERTY(EditAnywhere, Category="Drivetrain")
-	UDifferential* FrontDifferential;
-
+	EDifferentialType FrontDifferentialType = EDifferentialType::Open;
+	
 	UPROPERTY(EditAnywhere, Category="Drivetrain")
-	UDifferential* RearDifferential;
-
-	UPROPERTY(EditAnywhere, Category="Drivetrain", meta = (ClampMin="0.0", ClampMax="1.0"))
-	float FrontRearSplit = 0.5f;
+	EDifferentialType RearDifferentialType = EDifferentialType::Open;
+	
+	UPROPERTY(EditAnywhere, Category="Limited Slip Differential", meta=(unit="N.m"))
+	float PreloadTorque = 50;
+	
+	UPROPERTY(EditAnywhere, Category="Limited Slip Differential")
+	float PowerLockCoeff = 0.35f;
+	
+	UPROPERTY(EditAnywhere, Category="Limited Slip Differential")
+	float CoastLockCoeff = 0.15f;
+	
+	UPROPERTY(EditAnywhere, Category="Limited Slip Differential", meta=(unit="N.m"))
+	float MaxCorrectionTorque = 700;
 	
 	UPROPERTY(EditAnywhere, Category="Drivetrain")
 	float FinalDriveRatio = 3.15f;
 
 	UPROPERTY(EditAnywhere, Category="Drivetrain")
 	TArray<float> GearRatios {3.71, 5.25f, 3.36f, 2.17f, 1.72f, 1.32f, 1.f, 0.82f, 0.64f};
+	
 	int32 CurrentGear = 1;
 
 	virtual void BeginPlay() override;
@@ -57,6 +70,7 @@ public:
 	//Shafts for the chain
 	UPROPERTY()
 	UVehicleEngine* VehicleEngine;
+	
 	FShaft* EngineShaft;
 	FShaft* ClutchShaft;
 	FShaft* TransmissionShaft;
@@ -79,9 +93,15 @@ public:
 	FShaft* RRCopy;
 	FShaft* RLCopy;
 
-	TArray<FConnection> Connections;
-	TArray<FConnection*> BrakeConnections;
-	TArray<FConnection> CopyConnections;
+	TArray<FGearConstraint> Connections;
+	TArray<FDiffCarrierConstraint> DifferentialConstraints;
+	TArray<FGearConstraint> CopyConnections;
+	
+	TArray<FGearConstraint> GearConstraints;
+	TArray<FBrakeConstraint> BrakeConstraints;
+	TArray<FDiffCarrierConstraint> DiffCarrierConstraints;
+	TArray<FLimitedSlipConstraint> LimitedSlipConstraints;
+	TArray<FConstraintRef> SolveOrder;
 
 private:
 
@@ -91,19 +111,51 @@ private:
 	float a = 0.f;
 	float t = 0.f;
 
-	int32 SolverIterations = 10;
 
 	void InitializeShafts();
-public:
-	void SolveConstraints(TArray<FConnection>& Conns, float DT);
-	FORCEINLINE TArray<FConnection> GetConnections() const
+	
+	int32 AddGearConstraint(const FGearConstraint& Constraint)
 	{
-		TArray<FConnection> Copy;
+		const int32 Index = GearConstraints.Add(Constraint);
+		SolveOrder.Add(FConstraintRef(EConstraintKind::Gear, Index));
+		return Index;
+	}
+	
+	int32 AddBrakeConstraint(const FBrakeConstraint& Constraint)
+	{
+		const int32 Index = BrakeConstraints.Add(Constraint);
+		SolveOrder.Add(FConstraintRef(EConstraintKind::Brake, Index));
+		return Index;
+	}
+
+	int32 AddDiffCarrierConstraint(const FDiffCarrierConstraint& Constraint)
+	{
+		const int32 Index = DiffCarrierConstraints.Add(Constraint);
+		SolveOrder.Add(FConstraintRef(EConstraintKind::DiffCarrier, Index));
+		return Index;
+	}
+
+	int32 AddLimitedSlipConstraint(const FLimitedSlipConstraint& Constraint)
+	{
+		const int32 Index = LimitedSlipConstraints.Add(Constraint);
+		SolveOrder.Add(FConstraintRef(EConstraintKind::LimitedSlip, Index));
+		return Index;
+	}
+public:
+	void PreSolveConstraints(float DT);
+	void SolveConstraints(TArray<FGearConstraint>& Conns, float DT);
+	void SolveGearConstraint(FGearConstraint& Constraint, float DeltaTime);
+	void SolveBrakeConstraint(FBrakeConstraint& Constraint, float DeltaTime);
+	void SolveDiffCarrierConstraint(FDiffCarrierConstraint& Diffs, float DeltaTime);
+	void SolveLimitedSlipConstraint(FLimitedSlipConstraint& LSD);
+	FORCEINLINE TArray<FGearConstraint> GetConnections() const
+	{
+		TArray<FGearConstraint> Copy;
 		Copy.Reserve(Connections.Num());
 
-		for (const FConnection& Conn : Connections)
+		for (const FGearConstraint& Conn : Connections)
 		{
-			FConnection NewConn;
+			FGearConstraint NewConn;
 
 			if (Conn.Shaft1)
 			{

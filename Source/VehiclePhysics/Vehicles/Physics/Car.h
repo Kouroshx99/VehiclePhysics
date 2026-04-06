@@ -38,6 +38,12 @@ public:
 
 	UPROPERTY(EditAnywhere, Category="Car", meta=(AllowPrivateAccess=true))
 	FShaft ClutchShaft;
+	
+	UPROPERTY(EditAnywhere, Category="Car", meta=(AllowPrivateAccess=true))
+	FShaft FrontDiffShaft;
+	
+	UPROPERTY(EditAnywhere, Category="Car", meta=(AllowPrivateAccess=true))
+	FShaft RearDiffShaft;
 
 	UPROPERTY(EditAnywhere, Category="Car", meta=(AllowPrivateAccess=true))
 	FShaft TransferCaseShaft;
