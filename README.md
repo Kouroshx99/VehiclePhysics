@@ -6,7 +6,10 @@ A real-time vehicle dynamics and tire force simulation plugin for Unreal Engine,
 - Custom wheel colliders
 - Tire force modeling (longitudinal and lateral)
 - Drivetrain and powertrain simulation
-- Modular architecture suitable for research and experimentation
+- Differential types:
+  - Open
+  - Locked
+  - Limited-slip (LSD)
 
 ## License
 This repository is made available solely for non-commercial academic research and educational purposes.
