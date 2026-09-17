@@ -21,8 +21,14 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
-	/** Replaces the list and highlights a row. */
-	void SetRoster(const TArray<FText>& InNames, int32 InCurrent);
+	/**
+	 * Replaces the list and highlights a row.
+	 *
+	 * InHint is the control line shown underneath - the keys that actually drive the
+	 * switch, read from the project's input settings rather than assumed, so it stays
+	 * true after a rebind. Empty hides the line.
+	 */
+	void SetRoster(const TArray<FText>& InNames, int32 InCurrent, const FText& InHint = FText::GetEmpty());
 
 	/** Shows the list, then fades it after this many seconds. */
 	void Flash(float Seconds);
@@ -35,6 +41,7 @@ private:
 
 	TArray<FText> Names;
 	int32 Current = INDEX_NONE;
+	FText Hint;
 
 	/** Counts down while shown; the last second of it is the fade. */
 	float Remaining = 0.f;

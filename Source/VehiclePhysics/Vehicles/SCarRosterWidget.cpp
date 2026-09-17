@@ -28,10 +28,11 @@ void SCarRosterWidget::Construct(const FArguments& InArgs)
 	SetVisibility(EVisibility::Hidden);
 }
 
-void SCarRosterWidget::SetRoster(const TArray<FText>& InNames, int32 InCurrent)
+void SCarRosterWidget::SetRoster(const TArray<FText>& InNames, int32 InCurrent, const FText& InHint)
 {
 	Names = InNames;
 	Current = InCurrent;
+	Hint = InHint;
 	Rebuild();
 }
 
@@ -65,6 +66,25 @@ void SCarRosterWidget::Rebuild()
 					Names[i]))
 				.ColorAndOpacity(FSlateColor(Colour))
 				.Font(FCoreStyle::GetDefaultFontStyle(bIsCurrent ? "Bold" : "Regular", 15))
+			];
+	}
+
+	// THE CONTROL LINE, and the reason it exists at all: the list only ever appeared
+	// AFTER a switch, so it told you which cars there were and never which key got you
+	// there. Shown once when the level starts, that ordering problem goes away.
+	//
+	// Dimmer and smaller than the rows - it is wanted once, on the first read, and should
+	// not compete with the list every time afterwards.
+	if (!Hint.IsEmpty())
+	{
+		List->AddSlot()
+			.AutoHeight()
+			.Padding(0.f, 8.f, 0.f, 0.f)
+			[
+				SNew(STextBlock)
+				.Text(Hint)
+				.ColorAndOpacity(FSlateColor(FLinearColor(1.f, 1.f, 1.f, 0.35f)))
+				.Font(FCoreStyle::GetDefaultFontStyle("Regular", 11))
 			];
 	}
 }

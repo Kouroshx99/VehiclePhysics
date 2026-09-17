@@ -105,6 +105,16 @@ private:
 
 	void ShowRoster();
 
+	/**
+	 * The control line for the overlay, built from the project's ACTUAL bindings for
+	 * NextCar and PrevCar rather than from the keys this plugin happens to ship.
+	 *
+	 * A hardcoded hint is worse than none the moment somebody rebinds: it then states
+	 * something confidently and wrongly. Reading the mappings costs nothing and cannot
+	 * go stale.
+	 */
+	FText BuildControlHint() const;
+
 	/** Runs the deferred swap - see the note on the deferral in SwitchToCar. */
 	void PerformPendingSwap();
 

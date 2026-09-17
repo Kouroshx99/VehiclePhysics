@@ -8,6 +8,7 @@
 #include "Engine/World.h"
 #include "EngineUtils.h"
 #include "GameFramework/PlayerController.h"
+#include "GameFramework/InputSettings.h"
 #include "TimerManager.h"
 #include "Widgets/SOverlay.h"
 #include "Widgets/SBoxPanel.h"
@@ -83,6 +84,13 @@ AVehicleRoster* AVehicleRoster::Find(const UWorld* World)
 void AVehicleRoster::BeginPlay()
 {
 	Super::BeginPlay();
+
+	// FLASHED ONCE AT LEVEL START, which is the only moment it can actually teach
+	// anything. The overlay used to appear only after a switch, so it listed the cars to
+	// somebody who had already found the button and told the people who had not found it
+	// nothing at all. Shown here it names the key while there is still a use for that,
+	// then fades like any other flash and does not come back until a switch.
+	ShowRoster();
 
 	// Said once, because a roster with nothing in it is almost certainly an accident -
 	// the defaults ship populated, so an empty one means somebody cleared it.
@@ -319,6 +327,57 @@ void AVehicleRoster::ShowRoster()
 		Names.Add(FText::FromString(Name));
 	}
 
-	RosterWidget->SetRoster(Names, CurrentIndex);
+	// Highlighted by what is actually being driven, not by the last slot handed out.
+	// CurrentIndex is still 0 at BeginPlay, so trusting it would mark the first car on a
+	// level whose placed vehicle is any of the others. After a swap the two agree, since
+	// the new car has just been possessed.
+	const int32 Found = FindIndexForPawn();
+	RosterWidget->SetRoster(Names, (Found != INDEX_NONE) ? Found : CurrentIndex,
+		BuildControlHint());
 	RosterWidget->Flash(RosterDisplaySeconds);
+}
+
+FText AVehicleRoster::BuildControlHint() const
+{
+	const UInputSettings* Settings = GetDefault<UInputSettings>();
+	if (Settings == nullptr)
+	{
+		return FText::GetEmpty();
+	}
+
+	// Every key bound to an action, in the order the project lists them, joined for
+	// display. Reading them rather than assuming them is the whole point - see the header.
+	auto KeysFor = [Settings](const TCHAR* ActionName) -> FString
+	{
+		TArray<FInputActionKeyMapping> Mappings;
+		Settings->GetActionMappingByName(FName(ActionName), Mappings);
+
+		TArray<FString> KeyNames;
+		for (const FInputActionKeyMapping& Mapping : Mappings)
+		{
+			KeyNames.Add(Mapping.Key.GetDisplayName().ToString());
+		}
+		return FString::Join(KeyNames, TEXT(" / "));
+	};
+
+	const FString Next = KeysFor(TEXT("NextCar"));
+	const FString Prev = KeysFor(TEXT("PrevCar"));
+
+	// Nothing bound at all: say nothing rather than print an empty label. This happens if
+	// a project strips the plugin's input config, and the silence is the honest answer.
+	if (Next.IsEmpty() && Prev.IsEmpty())
+	{
+		return FText::GetEmpty();
+	}
+
+	if (Prev.IsEmpty())
+	{
+		return FText::FromString(FString::Printf(TEXT("next  %s"), *Next));
+	}
+	if (Next.IsEmpty())
+	{
+		return FText::FromString(FString::Printf(TEXT("previous  %s"), *Prev));
+	}
+
+	return FText::FromString(FString::Printf(TEXT("next  %s      previous  %s"), *Next, *Prev));
 }
