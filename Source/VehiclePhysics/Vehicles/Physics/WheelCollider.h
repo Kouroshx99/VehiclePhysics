@@ -89,8 +89,11 @@ public:
 	FORCEINLINE float GetCamberAngleRad() const { return CamberAngleRad; }
 	FORCEINLINE float GetCurrentWheelAngle() const {return CurrentSteerAngle; }
 	FORCEINLINE void SetOtherWheelSuspensionCompression(float Compression) {OtherWheelSuspensionCompression = Compression; }
-	// Cached wheel-hit result. NOTE: timing-dependent — during a solve it holds the current
-	// per-iteration hit; after ApplyForcesToBody it holds the Heun-averaged hit applied to the body.
+	// Cached wheel-hit result: whatever the most recent trace produced.
+	//
+	// It used to be timing-dependent - the per-iteration hit during a solve, replaced by a
+	// Heun-averaged one afterwards - and that caveat is gone with the integrator. There are
+	// no solve iterations to average over now, so there is only ever the latest value.
 	FORCEINLINE const FWheelHit& GetCurrentWheelHit() const { return CurrentWheelHit; }
 	FORCEINLINE UTireParamsDataAsset* GetParams() const { return TireParams; }
 	// The FShaft lives inside this component; the returned pointer must outlive any cache of it

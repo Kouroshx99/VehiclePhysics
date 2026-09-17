@@ -586,6 +586,8 @@ void UWheelCollider::ApplyForcesToBody(FWheelHit& WheelHit, FBodyInstance* BodyI
 	return;
 
 #if 0 // Retained as documentation of the raycast path - see the note above.
+      // Doubly historical now: the Heun integrator the comment below refers to has since
+      // been removed too, so nothing averages hits across iterations any more.
 	// Re-cache the wheel hit. NOTE: this receives the Heun-averaged hit (averaged across solve
 	// iterations), so CurrentWheelHit is overwritten with the averaged result to seed the next
 	// frame. Consequence: GetCurrentWheelHit() returns the per-iteration solve value during the

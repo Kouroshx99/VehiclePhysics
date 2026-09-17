@@ -1754,6 +1754,14 @@ void AVehicleTestBench::MeasureKinematics(FBenchRun& Run) const
 
 	// Per-axle roll stiffness, accumulated as the corners are walked.
 	float AxleRollStiffness[2] = { 0.f, 0.f };   // 0 = front, 1 = rear, N*m/rad
+
+	// THE SAME THING WITH THE TYRE IN SERIES, kept separately on purpose.
+	//
+	// The shares below - front bias, and how much of it the bars provide - describe the
+	// SETUP, so they stay suspension-only and keep meaning what a setup sheet means by
+	// them. The roll ANGLE is a different question: the tyre is a spring too, and it
+	// carries every newton the suspension does, so it belongs in that one.
+	float AxleRollStiffnessWithTyre[2] = { 0.f, 0.f };
 	float AxleRollCentreCm[2] = { 0.f, 0.f };
 	int32 AxleCount[2] = { 0, 0 };
 
@@ -1826,7 +1834,37 @@ void AVehicleTestBench::MeasureKinematics(FBenchRun& Run) const
 		const float DampingRatio = CriticalDamping > KINDA_SMALL_NUMBER
 			? (S->GetDamperRateNsPerM() * MotionRatio * MotionRatio) / CriticalDamping : 0.f;
 
-		AxleRollStiffness[Axle] += 0.5f * (WheelRateNPerM + S->GetAntiRollRateNPerM()) * TrackM * TrackM * 0.5f;
+		const float CornerRateNPerM = WheelRateNPerM + S->GetAntiRollRateNPerM();
+		AxleRollStiffness[Axle] += 0.5f * CornerRateNPerM * TrackM * TrackM * 0.5f;
+
+		// THE TYRE IS A SPRING, AND IT IS IN SERIES WITH THE SUSPENSION.
+		//
+		// Everything the spring and bar push against the road goes through the sidewall
+		// first, so the two stack the way series springs do - and the combination is
+		// softer than either. Leaving it out made this test report 2.740 deg/g on a car
+		// the skidpad measured rolling at 4.245: a 55 per cent error, in the direction
+		// that flatters the setup, which is the worst direction for a number somebody
+		// tunes against.
+		//
+		// The rate comes from the tyre's own vertical coefficients rather than a constant.
+		// Book (4.E68) linearised at small deflection is dFz/drho_z = qFz1 * Fz0 / R0,
+		// which for the shipped road tyre is about 136 kN/m against a 59 kN/m front wheel
+		// rate - the same order as the suspension, not a rounding error.
+		float CornerWithTyre = CornerRateNPerM;
+		if (const UPacejkaTyreComponent* Tyre = Corners[i].Tyre)
+		{
+			if (const UTireParamsDataAsset* Params = Tyre->GetTireParams())
+			{
+				const float TyreRateNPerM = (Params->R0 > KINDA_SMALL_NUMBER)
+					? (Params->qFz1 * Params->FZ0 / Params->R0) : 0.f;
+				if (TyreRateNPerM > KINDA_SMALL_NUMBER)
+				{
+					CornerWithTyre = (CornerRateNPerM * TyreRateNPerM)
+						/ (CornerRateNPerM + TyreRateNPerM);
+				}
+			}
+		}
+		AxleRollStiffnessWithTyre[Axle] += 0.5f * CornerWithTyre * TrackM * TrackM * 0.5f;
 		++AxleCount[Axle];
 
 		// --- roll centre, from the front-view instant centre ---------------------
@@ -1961,15 +1999,30 @@ void AVehicleTestBench::MeasureKinematics(FBenchRun& Run) const
 
 	const float RollArmM = FMath::Max((ComHeightCm - (0.5f * (FrontRC + RearRC))) * BenchCmToM, 0.01f);
 	const float TotalRollStiffness = AxleRollStiffness[0] + AxleRollStiffness[1];
-	const float RollGradient = TotalRollStiffness > KINDA_SMALL_NUMBER
-		? FMath::RadiansToDegrees((SprungKg * GravityMPerSec2 * RollArmM) / TotalRollStiffness) : 0.f;
+	const float TotalRollStiffnessWithTyre = AxleRollStiffnessWithTyre[0] + AxleRollStiffnessWithTyre[1];
+
+	// K MINUS THE ROLL MOMENT, not K alone.
+	//
+	// Rolling moves the sprung mass outboard, which lengthens its own lever and adds to
+	// the moment that is rolling it - the body works partly against itself, and the
+	// equilibrium is M / (K - M) rather than M / K. Dividing by stiffness alone treats
+	// the car as if the mass stayed put and under-reports the angle; here it was worth
+	// about 0.27 deg/g on its own.
+	const float RollMomentPerG = SprungKg * GravityMPerSec2 * RollArmM;
+	const float RollDenominator = TotalRollStiffnessWithTyre - RollMomentPerG;
+	const float RollGradient = RollDenominator > KINDA_SMALL_NUMBER
+		? FMath::RadiansToDegrees(RollMomentPerG / RollDenominator) : 0.f;
 	const float FrontShare = TotalRollStiffness > KINDA_SMALL_NUMBER
 		? 100.f * AxleRollStiffness[0] / TotalRollStiffness : 50.f;
 
 	Run.Metrics.Add(FBenchMetric(TEXT("CoG height"), ComHeightCm, TEXT("cm"),
 		35.f, 85.f, TEXT("sports 40-50, saloon 50-60, rally 52-58, 4x4 65-80")));
-	Run.Metrics.Add(FBenchMetric(TEXT("roll gradient"), RollGradient, TEXT("deg/g"),
-		2.f, 10.f, TEXT("sports 3-5, road 5-7, soft SUV 8-10")));
+	// NAMED "predicted", because Skidpad reports a "roll gradient (measured)" from a car
+	// actually cornering. Two tests reporting the same name by different methods is how a
+	// reader ends up trusting whichever they saw first; the pair is a useful cross-check
+	// only if it is obvious which is which.
+	Run.Metrics.Add(FBenchMetric(TEXT("predicted roll gradient"), RollGradient, TEXT("deg/g"),
+		2.f, 10.f, TEXT("sports 3-5, road 5-7, soft SUV 8-10; cf. Skidpad's measured value")));
 	Run.Metrics.Add(FBenchMetric(TEXT("front roll-stiffness share"), FrontShare, TEXT("%"),
 		50.f, 70.f, TEXT("front-biased understeers; 50% is neutral")));
 

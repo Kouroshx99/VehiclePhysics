@@ -151,7 +151,26 @@ FWishboneCornerSetup ASaloonCar::FrontSetup()
 	// Nothing else moves: a bar acts only in the roll mode - one wheel up while the other
 	// goes down - so ride frequency, damping ratio and the pitch gradient are all exactly
 	// as they were. That is the whole reason to fix lean here rather than in the springs.
-	S.AntiRollRateNPerM = 23462.f;
+	// SOFTENED to land a ROAD-CAR roll gradient rather than a sports one.
+	//
+	// x3.85 above put this at 4.245 deg/g measured, which is inside the sports band of
+	// 3-5 on a car whose band is 5-7. It was chosen against the static prediction of
+	// the day, and that prediction was wrong by 55 per cent - it omitted the tyre's own
+	// vertical rate, which sits in series with the suspension and is most of the
+	// compliance. Corrected, the bench predicts and measures within a few per cent.
+	//
+	// 13411 front / 10431 rear lands about 5.0 deg/g: the bottom of the road band, visibly
+	// softer, and short of the roughly 5.7 the original bars gave - which is the lean
+	// that prompted the complaint in the first place.
+	//
+	// THIS COSTS NO INNER-WHEEL GRIP, which is the thing worth being clear about.
+	// Total lateral load transfer is m*g*h/t - mass, centre of gravity height and
+	// track. No spring or bar term appears in it. Stiffness sets how far the body
+	// TIPS, not how much load leaves the inside. At the measured 1.05 g limit the
+	// inner wheels still carry 64-69% of static either way, and lifting one would
+	// take 2.9 g. Both bars are scaled by the same factor, so the front/rear split -
+	// and with it the load transfer distribution and the balance - does not move.
+	S.AntiRollRateNPerM = 13411.f;
 	// PRELOAD, and it is not optional. The coil is squeezed by exactly the preload at the
 	// design position, so the spring force there IS PreloadForceN. Leave it at zero and
 	// the spring holds nothing at design height and the corner sinks until it makes its
@@ -200,8 +219,8 @@ FWishboneCornerSetup ASaloonCar::RearSetup()
 	// x1.30, matching the front - see the note there.
 	S.SpringRateNPerM = 82274.f;
 	S.DamperRateNsPerM = 5955.f;
-	// x3.85, matched to the front so the roll split holds - see the note there.
-	S.AntiRollRateNPerM = 18249.f;
+	// Scaled with the front so the roll split holds - see the note there.
+	S.AntiRollRateNPerM = 10431.f;
 	// PRELOAD, and it is not optional. The coil is squeezed by exactly the preload at the
 	// design position, so the spring force there IS PreloadForceN. Leave it at zero and
 	// the spring holds nothing at design height and the corner sinks until it makes its
