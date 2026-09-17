@@ -500,7 +500,7 @@ public:
 	/**
 	 * Hard cap on |kappa| handed to the Magic Formula.
 	 *
-	 * A RAIL, not a tuning parameter. MF 5.2 is fitted from rig data spanning
+	 * A RAIL, not a tuning parameter. MF 6.1 is fitted from rig data spanning
 	 * roughly |kappa| < 0.25-0.30; past that the formula still returns a smooth,
 	 * monotonically decaying force, but one nothing ever measured. The cap stops
 	 * the extrapolation running away rather than shaping anything a driver feels -

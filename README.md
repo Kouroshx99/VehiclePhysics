@@ -93,7 +93,8 @@ So the workflow is:
 
 ## What is modelled
 
-**Tyres** — Pacejka Magic Formula 5.2, including combined slip and transient relaxation,
+**Tyres** — Pacejka Magic Formula 6.1, including combined slip, transient relaxation,
+inflation-pressure dependency and turn slip,
 so longitudinal and lateral demands interact as they do on a real contact patch. Four
 presets ship: `TrackDay`, `Wet`, `Gravel`, `Offroad`.
 
