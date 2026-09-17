@@ -70,10 +70,6 @@ The plugin ships an example map at `Content/VehiclePhysics/Maps/Test`, and four 
 cars under `Content/VehiclePhysics/Vehicles/` — `BP_Saloon`, `BP_SportCar`, `BP_Rally` and
 `BP_Offroad`.
 
-One cosmetic caveat: `SM_BankedTurn` still references materials from the project it was
-authored in, so the track renders with the default checker material. Geometry, collision
-and handling are unaffected.
-
 If you are evaluating the simulation rather than the example content, [Building a
 car](#building-a-car) is the more useful path — it takes about ten minutes and exercises
 the parts that matter.
