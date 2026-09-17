@@ -240,8 +240,34 @@ Requests should be directed to itc@lsu.edu.
 Use is conditioned upon proper citation of the following in any resulting publication,
 presentation, or derivative work:
 
-> K. Afsharpour, *VehiclePhysics: A Modular Vehicle Dynamics Plugin for Unreal Engine*,
-> Louisiana State University, 2026.
+> K. Afsharpour, *VehiclePhysics: A Vehicle Dynamics Simulation and Measurement
+> Framework for Unreal Engine*, Louisiana State University, 2026.
 > GitHub repository: https://github.com/Kouroshx99/VehiclePhysics
 
 See `LICENCE` for the full terms.
+
+### Licensing FAQ
+
+**Can I use this in a commercial game?**
+
+Yes, with a licence from LSU. The default terms cover non-commercial academic research
+and teaching; shipping it in something you sell needs prior written authorization,
+arranged through LSU's Innovation & Technology Commercialization office:
+**itc@lsu.edu**.
+
+This is a dual-licence arrangement rather than a closed door — the commercial path
+exists and is expected to be used.
+
+**Can I use it for a university course, a thesis, or a research paper?**
+
+Yes, directly, with no permission needed. That is what the default licence is for.
+Citation is required, as above.
+
+**Can I fork it and publish my changes?**
+
+Yes for non-commercial purposes, keeping the licence and the citation. Contributions
+back are welcome.
+
+**Can I ask questions or report problems?**
+
+Yes — open an issue, or use the discussion attached to the current release.
