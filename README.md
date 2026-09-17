@@ -119,16 +119,14 @@ special-cased.
 `AVehicleTestBench` drives a vehicle through an automated suite and reports measured
 results. Place one in a level and point it at a car, or drive it from the command line.
 
-| Test | Reports |
+| `-benchtest=` | What it does |
 |---|---|
-| `Kinematics` | masses, inertias, CoG height, roll-stiffness split, ground clearance |
-| `Skidpad` | understeer gradient (ISO 4138 constant-steer), peak lateral grip |
-| `StepSteer` | yaw overshoot, time to peak, response time |
-| `StraightLine` | peak acceleration, braking distance, peak braking |
-| `PowerOnCornering` | understeer gradient under power |
-| `Articulation` | cross-axle articulation, diagonal wheel load retained |
-| `AntiRollBar` | roll gradient with and without bars, TLLTD |
-| `Drivetrain` | gearing and differential behaviour |
+| `Kinematics` | Static report — masses, inertias, CoG and roll-centre heights, camber, roll gradient, roll-stiffness split. No driving, no ground needed |
+| `Skidpad` | Fixed steer, slow speed ramp. Understeer gradient by the ISO 4138 constant-steer method, roll gradient, peak lateral grip |
+| `StepSteer` | Straight run, then a steer step. Yaw response time and overshoot |
+| `Articulation` | One wheel over a block. What the anti-roll bar does to the diagonal load |
+| `StraightLine` | Full throttle to target, then full brake. Pitch, traction, stopping distance |
+| `PowerOnCornering` | Fixed steer on a circle, then throttle. What power does to the balance |
 
 ```bash
 # UE 4.27 - UE4Editor-Cmd.exe;  UE 5.x - UnrealEditor-Cmd.exe
