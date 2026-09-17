@@ -17,7 +17,7 @@ void FWheelColliderVisualizer::DrawVisualization(const UActorComponent* Componen
 		
 		FVector ForwardDirection = WheelCollider->GetForwardVector();
 		FVector UpDirection = WheelCollider->GetUpVector();
-		const FVector CircleLocation = SuspensionOrigin - WheelCollider->GetRestLenght() * WheelCollider->GetUpVector();
+		const FVector CircleLocation = SuspensionOrigin - WheelCollider->GetRestLength() * WheelCollider->GetUpVector();
 		
 		DrawCircle(PDI, CircleLocation,
 			ForwardDirection,
@@ -27,7 +27,7 @@ void FWheelColliderVisualizer::DrawVisualization(const UActorComponent* Componen
 			64,
 			SDPG_Foreground);
 
-		const FVector SuspensionEnd = SuspensionOrigin + -WheelCollider->GetUpVector() * (WheelCollider->GetWheelRadius() + WheelCollider->GetRestLenght());
+		const FVector SuspensionEnd = SuspensionOrigin + -WheelCollider->GetUpVector() * (WheelCollider->GetWheelRadius() + WheelCollider->GetRestLength());
 		PDI->DrawLine(SuspensionOrigin,
 			SuspensionEnd,
 				FColor::Green,

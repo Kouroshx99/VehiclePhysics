@@ -1,2 +1,27 @@
-# Auto detect text files and perform LF normalization
+# Unreal Engine asset files are BINARY. Without these rules the "* text=auto" below
+# applies git's text heuristics to every .uasset and .umap - it usually guesses right and
+# leaves them alone, but "usually" is not a property you want on a 50 MB map, and a wrong
+# guess rewrites line endings inside a binary file and silently corrupts it.
+#
+# Marking them explicitly also stops git trying to diff or merge them, which it cannot do
+# usefully in any case.
+*.uasset    binary
+*.umap      binary
+*.udk       binary
+*.upk       binary
+
+# Content that is equally binary and equally not diffable.
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.tga       binary
+*.bmp       binary
+*.fbx       binary
+*.wav       binary
+*.mp3       binary
+*.ogg       binary
+*.ttf       binary
+*.otf       binary
+
+# Everything else: detect text and normalise line endings on the way in.
 * text=auto

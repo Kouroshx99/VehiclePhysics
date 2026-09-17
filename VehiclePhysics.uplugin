@@ -10,23 +10,29 @@
 	"DocsURL": "",
 	"MarketplaceURL": "",
 	"SupportURL": "https://kouroshafsharpour.com/",
-	"EngineVersion": "4.27.0",
 	"CanContainContent": true,
 	"IsBetaVersion": true,
-	"Installed": true,
-	"SupportedTargetPlatforms": [
-		"Win64"
-	],
+	"IsExperimentalVersion": false,
+	"Installed": false,
 	"Modules": [
 		{
 			"Name": "VehiclePhysics",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"PlatformAllowList": [
+				"Win64"
+			]
 		},
 		{
 			"Name": "VehiclePhysicsEditor",
 			"Type": "Editor",
-			"LoadingPhase": "PostEngineInit"
+			"LoadingPhase": "PostEngineInit",
+			"PlatformAllowList": [
+				"Win64"
+			]
 		}
+	],
+	"SupportedTargetPlatforms": [
+		"Win64"
 	]
 }

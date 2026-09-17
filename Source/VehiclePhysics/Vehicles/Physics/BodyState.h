@@ -1,5 +1,4 @@
 #pragma once
-#include "BodyDerivative.h"
 
 #include "BodyState.generated.h"
 
@@ -23,27 +22,6 @@ struct FBodyState
 	
 	FVector Velocity = FVector::ZeroVector;
 	FVector AngularVelocity = FVector::ZeroVector;
-
-	FBodyState operator+(const FBodyDerivative& Deriv) const
-	{
-		FBodyState Result;
-		Result.Location = Location + Deriv.dPosition;
-		Result.Velocity = Velocity + Deriv.dVelocity;
-		Result.Rotation = Rotation + Deriv.dRotation;
-		Result.Rotation.Normalize();
-		Result.AngularVelocity = AngularVelocity + Deriv.dAngularVelocity;
-		return Result;
-	}
-
-	FBodyState& operator+=(const FBodyDerivative& Deriv)
-	{
-		Location += Deriv.dPosition;
-		Velocity += Deriv.dVelocity;
-		Rotation += Deriv.dRotation;
-		Rotation.Normalize();
-		AngularVelocity += Deriv.dAngularVelocity;
-		return *this;
-	}
 
 	FBodyState operator*(float Scalar) const
 	{

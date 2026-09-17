@@ -9,8 +9,8 @@ struct FWheelSolverData
 
 	float LongitudinalSlip = 0.f;
 	float LateralSlip = 0.f;
-	float SuspensionLenght = 0.f;
-	float LastSuspensionLenght = 0.f;
+	float SuspensionLength = 0.f;
+	float LastSuspensionLength = 0.f;
 	float AngularVelocity = 0.f;
 	float AngularAcceleration = 0.f;
 
@@ -19,8 +19,8 @@ struct FWheelSolverData
 		FWheelSolverData C;
 		C.LongitudinalSlip = LongitudinalSlip + Other.LongitudinalSlip;
 		C.LateralSlip = LateralSlip + Other.LateralSlip;
-		C.SuspensionLenght = SuspensionLenght + Other.SuspensionLenght;
-		C.LastSuspensionLenght = LastSuspensionLenght + Other.LastSuspensionLenght;
+		C.SuspensionLength = SuspensionLength + Other.SuspensionLength;
+		C.LastSuspensionLength = LastSuspensionLength + Other.LastSuspensionLength;
 		C.AngularVelocity = AngularVelocity + Other.AngularVelocity;
 		C.AngularAcceleration = AngularAcceleration + Other.AngularAcceleration;
 		return C;
@@ -31,8 +31,8 @@ struct FWheelSolverData
 		FWheelSolverData C;
 		C.LongitudinalSlip = LongitudinalSlip * B;
 		C.LateralSlip = LateralSlip * B;
-		C.SuspensionLenght = SuspensionLenght * B;
-		C.LastSuspensionLenght = LastSuspensionLenght * B;
+		C.SuspensionLength = SuspensionLength * B;
+		C.LastSuspensionLength = LastSuspensionLength * B;
 		C.AngularVelocity = AngularVelocity * B;
 		C.AngularAcceleration = AngularAcceleration * B;
 		return C;
@@ -43,8 +43,8 @@ struct FWheelSolverData
 		FWheelSolverData C;
 		C.LongitudinalSlip = LongitudinalSlip / B;
 		C.LateralSlip = LateralSlip / B;
-		C.SuspensionLenght = SuspensionLenght / B;
-		C.LastSuspensionLenght = LastSuspensionLenght / B;
+		C.SuspensionLength = SuspensionLength / B;
+		C.LastSuspensionLength = LastSuspensionLength / B;
 		C.AngularVelocity = AngularVelocity / B;
 		C.AngularAcceleration = AngularAcceleration / B;
 		return C;

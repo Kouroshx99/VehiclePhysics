@@ -19,6 +19,7 @@ enum class EConstraintKind : uint8
 	DiffCarrier UMETA(DisplayName = "ECK_DiffCarrier"),
 	LimitedSlip UMETA(DisplayName = "ECK_LimitedSlip"),
 	Brake UMETA(DisplayName = "ECK_Brake"),
+	Clutch UMETA(DisplayName = "ECK_Clutch"),
 };
 
 USTRUCT()
@@ -62,6 +63,28 @@ struct FGearConstraint
 		Ratio(R)
 	{}
 	
+};
+
+USTRUCT()
+struct FClutchConstraint
+{
+	GENERATED_BODY()
+
+	FShaft* Input = nullptr;    // engine side
+	FShaft* Output = nullptr;   // gearbox side
+
+	/** Torque the plate carries fully clamped, N*m. Size at 1.3-1.5x peak engine torque. */
+	float MaxTorque = 0.f;
+
+	/** 0 = open, 1 = fully clamped. Written by the shift state machine. */
+	float Engagement = 1.f;
+
+	float AccumJ = 0.f;
+	float DeltaTime = 0.f;
+
+	FClutchConstraint() = default;
+	FClutchConstraint(FShaft* InInput, FShaft* InOutput, float InMaxTorque)
+		: Input(InInput), Output(InOutput), MaxTorque(InMaxTorque) {}
 };
 
 USTRUCT(BlueprintType)

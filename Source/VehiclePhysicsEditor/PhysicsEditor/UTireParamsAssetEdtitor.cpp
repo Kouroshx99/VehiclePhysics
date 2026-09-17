@@ -1,6 +1,7 @@
 #include "UTireParamsAssetEdtitor.h"
 
 #include "VehiclePhysics/Vehicles/STireGraphWidget.h"
+#include "VehiclePhysics/Vehicles/VehiclePhysicsCompat.h"
 
 void UTireParamsAssetEdtitor::InitTireParamsEditor(const EToolkitMode::Type Mode,
                                                    const TSharedPtr<class IToolkitHost>& InitToolkitHost, UTireParamsDataAsset* Asset)
@@ -52,7 +53,7 @@ void UTireParamsAssetEdtitor::InitTireParamsEditor(const EToolkitMode::Type Mode
 	
 	// Slate ticker for updating values each frame
 	float a = 0.f;
-	FTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float DeltaTime)
+	FVehiclePhysicsTicker::GetCoreTicker().AddTicker(FTickerDelegate::CreateLambda([this](float DeltaTime)
 	{
 		if (GraphWidget.IsValid())
 		{

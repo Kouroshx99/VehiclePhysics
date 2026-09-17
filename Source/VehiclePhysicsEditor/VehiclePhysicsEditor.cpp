@@ -5,7 +5,9 @@
 #include "Modules/ModuleInterface.h"
 #include "PhysicsEditor/UTireParamsDataAssetActions.h"
 #include "PhysicsEditor/WheelColliderVisualizer.h"
+#include "PhysicsEditor/WishboneSuspensionVisualizer.h"
 #include "VehiclePhysics/Vehicles/Physics/WheelCollider.h"
+#include "VehiclePhysics/Vehicles/Physics/WishboneSuspension.h"
 #include "UnrealEd.h"
 #include "PhysicsEditor/TireParamsEditorStyle.h"
 
@@ -20,12 +22,24 @@ void FVehiclePhysicsEditorModule::StartupModule()
 	UE_LOG(LogTemp, Log, TEXT("VehiclePhysicsEditor StartupModule"));
 	TSharedPtr<FWheelColliderVisualizer> WheelColliderVisualizer = MakeShared<FWheelColliderVisualizer>();
 	
+	TSharedPtr<FWishboneSuspensionVisualizer> WishboneVisualizer = MakeShared<FWishboneSuspensionVisualizer>();
+
 	if(GUnrealEd)
 	{
-		WheelColliderVisualizer->OnRegister();
-		GUnrealEd->RegisterComponentVisualizer(UWheelCollider::StaticClass()->GetFName(), WheelColliderVisualizer);
 		UE_LOG(LogTemp, Log, TEXT("VehiclePhysicsEditor registering"));
-		RegisteredVisualizers.Add(WheelColliderVisualizer);
+
+		// The name is recorded alongside each visualizer because that is what
+		// unregistering takes - see RegisteredVisualizerClassNames.
+		auto Register = [this](FName ClassName, TSharedPtr<FComponentVisualizer> Visualizer)
+		{
+			Visualizer->OnRegister();
+			GUnrealEd->RegisterComponentVisualizer(ClassName, Visualizer);
+			RegisteredVisualizers.Add(Visualizer);
+			RegisteredVisualizerClassNames.Add(ClassName);
+		};
+
+		Register(UWheelCollider::StaticClass()->GetFName(), WheelColliderVisualizer);
+		Register(UWishboneSuspension::StaticClass()->GetFName(), WishboneVisualizer);
 	}
 
 	IAssetTools* AssetTools = &FModuleManager::LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -54,13 +68,18 @@ void FVehiclePhysicsEditorModule::ShutdownModule()
 	RegisteredAssetActions.Empty();
 
 	FTireParamsEditorStyle::Shutdown();
-	for (auto& Vis : RegisteredVisualizers)
-	{
-		if (GUnrealEd)
-			GUnrealEd->UnregisterComponentVisualizer(UWheelCollider::StaticClass()->GetFName());
-	}
 
-	//if(GUnrealEd)
-	//	GUnrealEd->UnregisterComponentVisualizer(UWheelCollider::StaticClass()->GetFName());
+	// By recorded name, one per registration. The previous loop named UWheelCollider
+	// on every iteration, which unregistered it repeatedly and left anything else
+	// registered against unloaded code.
+	if (GUnrealEd)
+	{
+		for (const FName& ClassName : RegisteredVisualizerClassNames)
+		{
+			GUnrealEd->UnregisterComponentVisualizer(ClassName);
+		}
+	}
+	RegisteredVisualizerClassNames.Empty();
+	RegisteredVisualizers.Empty();
 }
 #undef LOCTEXT_NAMESPACE

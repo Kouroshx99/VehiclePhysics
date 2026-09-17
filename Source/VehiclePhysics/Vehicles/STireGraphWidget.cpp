@@ -1,7 +1,6 @@
 #include "STireGraphWidget.h"
 
 #include "Brushes/SlateColorBrush.h"
-#include "GoogleInstantPreview/instant_preview_server.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Styling/CoreStyle.h"
 #include "Widgets/DeclarativeSyntaxSupport.h"
@@ -45,6 +44,15 @@ int32 STireGraphWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
                                 const FSlateRect& MyCullingRect, FSlateWindowElementList& OutDrawElements, int32 LayerId,
                                 const FWidgetStyle& InWidgetStyle, bool bParentEnabled) const
 {
+	// No asset, no graph. The curves are drawn by calling straight into the data
+	// asset, so a corner whose tyre params were never assigned - which is what a
+	// freshly reparented Blueprint looks like - would otherwise take the editor down
+	// from a paint call, several frames away from the thing actually at fault.
+	if (!Asset.IsValid())
+	{
+		return LayerId;
+	}
+
 	const FVector2D Size = AllottedGeometry.GetLocalSize();
 
 	// --- Background ---
@@ -228,10 +236,10 @@ int32 STireGraphWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
 
 		float kappa = j/100.f;
 		float alpha = kappa * PI /2.f;
-		FPacejkaResult resultx = Asset->ComputeTireForcesOverriden(2637, kappa, CurrentSlipPoint.Y,
+		FPacejkaResult resultx = Asset->ComputeTireForcesOverriden(Asset->GraphLoadN, kappa, CurrentSlipPoint.Y,
 			CurrentSlipPoint.Z, 10, 0,
 			10, 0);
-		FPacejkaResult resulty = Asset->ComputeTireForcesOverriden(2637, CurrentSlipPoint.X, alpha,
+		FPacejkaResult resulty = Asset->ComputeTireForcesOverriden(Asset->GraphLoadN, CurrentSlipPoint.X, alpha,
 	CurrentSlipPoint.Z, 10, 0,
 	10, 0);
 		resulty.Fx = resultx.Fx;
@@ -292,7 +300,7 @@ int32 STireGraphWidget::OnPaint(const FPaintArgs& Args, const FGeometry& Allotte
     {
     	float kappa = CurrentSlipPoint.X;
     	float alpha = CurrentSlipPoint.Y;
-    	FPacejkaResult result = Asset->ComputeTireForcesOverriden(2637, kappa, alpha,
+    	FPacejkaResult result = Asset->ComputeTireForcesOverriden(Asset->GraphLoadN, kappa, alpha,
 			CurrentSlipPoint.Z, 10, 0,
 			10, 0.0167f);
         // Vertical line for slip ratio (kappa) on Fx curve
